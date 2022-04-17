@@ -33,7 +33,7 @@
             </q-item-section>
 
             <q-item-section side top>
-              <q-icon name="volume_up" />
+              <q-icon name="volume_up" v-if="speechSynthesisSupport" />
               <q-item-label caption>
                 {{ word.created_at.toISOString() }}
               </q-item-label>
@@ -127,11 +127,19 @@ export default defineComponent({
       },
     });
 
-    const { speak } = useSpeechSynthetisAPI();
+    const { support: speechSynthesisSupport, speak } = useSpeechSynthetisAPI();
 
     if (!support) {
       const router = useRouter();
       router.replace({ name: 'error-not-found' });
+      return;
+    }
+
+    if (!speechSynthesisSupport) {
+      $q.notify({
+        type: 'info',
+        message: 'Speech Synthesis is not supported.',
+      });
       return;
     }
 
@@ -159,6 +167,7 @@ export default defineComponent({
       isListening,
       transcripts,
       words,
+      speechSynthesisSupport,
       action() {
         isListening.value ? stop() : start();
       },

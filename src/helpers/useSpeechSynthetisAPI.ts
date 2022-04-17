@@ -10,7 +10,17 @@ interface SpeechSynthesisVoice {
 
 type VoiceMap = Map<string, SpeechSynthesisVoice>;
 
+enum SpeechSynthetisAPISupport {
+  Unsupported,
+  Default,
+}
+
 export default function useSpeechSynthetisAPI() {
+  let support = SpeechSynthetisAPISupport.Unsupported;
+  if ('speechSynthesis' in window) {
+    support = SpeechSynthetisAPISupport.Default;
+  }
+
   const synth = window.speechSynthesis;
 
   const voiceMap: VoiceMap = new Map();
@@ -24,6 +34,7 @@ export default function useSpeechSynthetisAPI() {
   }, 0);
 
   return {
+    support,
     speak(input: string, lang: string) {
       const utter = new SpeechSynthesisUtterance(input);
 
