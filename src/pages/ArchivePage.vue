@@ -1,6 +1,6 @@
 <template>
   <q-page class="column items-center justify-start" style="padding-top: 1rem">
-    <q-list bordered separator>
+    <q-list bordered separator style="width: 80%">
       <q-item
         clickable
         v-ripple

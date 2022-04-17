@@ -22,7 +22,7 @@
             <q-icon name="edit" />
           </template>
 
-          <q-item>
+          <q-item @click="speak(word.value, word.language)">
             <q-item-section>
               <q-item-label>{{ word.value }}</q-item-label>
               <q-item-label caption lines="2" v-if="word.translations.length">
@@ -33,10 +33,7 @@
             </q-item-section>
 
             <q-item-section side top>
-              <q-icon
-                name="volume_up"
-                @click="speak(word.value, word.language)"
-              />
+              <q-icon name="volume_up" />
               <q-item-label caption>
                 {{ word.created_at.toISOString() }}
               </q-item-label>
