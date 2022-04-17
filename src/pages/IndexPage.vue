@@ -7,12 +7,13 @@
         leave-active-class="animated fadeOut"
       >
         <q-slide-item
-          v-for="(transcript, index) in transcripts"
-          :key="transcript + index"
+          v-for="(word, index) in words"
+          :key="word.value + index"
           left-color="red"
           right-color="blue"
           @left="remove(index)"
           @right="edit"
+          v-ripple
         >
           <template v-slot:left>
             <q-icon name="delete_outline" />
@@ -22,7 +23,24 @@
           </template>
 
           <q-item>
-            <q-item-section>{{ transcript }}</q-item-section>
+            <q-item-section>
+              <q-item-label>{{ word.value }}</q-item-label>
+              <q-item-label caption lines="2" v-if="word.translations.length">
+                <p v-for="translation in word.translations" :key="translation">
+                  {{ translation }}
+                </p>
+              </q-item-label>
+            </q-item-section>
+
+            <q-item-section side top>
+              <q-icon
+                name="volume_up"
+                @click="speak(word.value, word.language)"
+              />
+              <q-item-label caption>
+                {{ word.created_at.toISOString() }}
+              </q-item-label>
+            </q-item-section>
           </q-item>
         </q-slide-item>
       </transition-group>
@@ -56,13 +74,21 @@ import { defineComponent, ref, watch } from 'vue';
 import useSpeechRecognitionAPI, {
   SpeechRecognitionAPIStatus,
 } from 'src/helpers/useSpeechRecognitionAPI';
+import useSpeechSynthetisAPI from 'src/helpers/useSpeechSynthetisAPI';
 import useStorageList, { StorageType } from 'src/helpers/useStorageList';
 import { useRouter } from 'vue-router';
 import { QSpinnerAudio, useQuasar } from 'quasar';
 
 type voidFn = () => void;
-
 type Details = { reset: voidFn };
+
+interface Word {
+  value: string;
+  translations: string[];
+  language: string;
+  translationsLanguage: string;
+  created_at: Date;
+}
 
 export default defineComponent({
   name: 'IndexPage',
@@ -83,7 +109,28 @@ export default defineComponent({
       stop,
       remove,
       clear,
-    } = useSpeechRecognitionAPI();
+    } = useSpeechRecognitionAPI({
+      onResult(transcript, confirm) {
+        $q.dialog({
+          title: 'New Word',
+          prompt: {
+            model: transcript,
+            type: 'string',
+          },
+        }).onOk(() => {
+          confirm();
+          words.value.push({
+            value: transcript,
+            translations: [],
+            language: 'en-US',
+            translationsLanguage: 'it',
+            created_at: new Date(),
+          });
+        });
+      },
+    });
+
+    const { speak } = useSpeechSynthetisAPI();
 
     if (!support) {
       const router = useRouter();
@@ -109,24 +156,21 @@ export default defineComponent({
       }
     });
 
-    let timer;
-    function finalize(reset: voidFn) {
-      timer = setTimeout(() => {
-        reset();
-      }, 1000);
-    }
+    const words = ref<Word[]>([]);
 
     return {
       isListening,
       transcripts,
+      words,
       action() {
         isListening.value ? stop() : start();
       },
       edit({ reset }: Details) {
-        finalize(reset);
+        reset();
       },
       remove,
       save,
+      speak,
     };
 
     function save() {

@@ -16,12 +16,6 @@ const routes: RouteRecordRaw[] = [
         name: 'archive',
         component: () => import('pages/ArchivePage.vue'),
       },
-
-      // {
-      //   path: 'new',
-      //   name: 'new',
-      //   component: () => import('src/pages/NewPage.vue'),
-      // },
     ],
   },
   // Always leave this as last one,

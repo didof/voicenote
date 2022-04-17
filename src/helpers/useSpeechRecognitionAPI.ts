@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 export enum SpeechRecognitionAPISupport {
   Unsupported,
@@ -12,22 +12,27 @@ export enum SpeechRecognitionAPIStatus {
   Error,
 }
 
+interface SpeechRecognitionAlternative {
+  confidence: number;
+  transcript: string;
+}
+
 interface SpeechRecognitionAPIOptions {
   continuous?: boolean;
   interimResults?: boolean;
   lang?: string;
-  maxAlternatives?: number;
   minimalConfidence?: number;
   initialTranscripts?: string[];
+  onResult?: (transcript: string, confirm: () => void) => void;
 }
 
 const defaultOptions: SpeechRecognitionAPIOptions = {
   continuous: false,
   interimResults: false,
   lang: 'en-US',
-  maxAlternatives: 1,
   minimalConfidence: 0.7,
   initialTranscripts: [],
+  onResult: () => true,
 };
 
 const OPTIONS = {
@@ -55,16 +60,16 @@ export default function useSpeechRecognitionAPI(options = defaultOptions) {
   const support = getSpeechRecognitionAPISupport();
 
   const SpeechRecognition = OPTIONS.SpeechRecognitionOptions[support - 1];
-  const SpeechGrammarList = OPTIONS.SpeechGrammarListOptions[support - 1];
-  const SpeechRecognitionEvent =
-    OPTIONS.SpeechRecognitionEventOptions[support - 1];
+  // const SpeechGrammarList = OPTIONS.SpeechGrammarListOptions[support - 1];
+  // const SpeechRecognitionEvent =
+  //   OPTIONS.SpeechRecognitionEventOptions[support - 1];
 
   const speechRecognition = new (<any>window)[SpeechRecognition]();
 
-  speechRecognition.continuous = options.continuous!;
-  speechRecognition.interimResults = options.interimResults!;
-  speechRecognition.lang = options.lang!;
-  speechRecognition.maxAlternatives = options.maxAlternatives!;
+  speechRecognition.continuous = options.continuous;
+  speechRecognition.interimResults = options.interimResults;
+  speechRecognition.lang = options.lang;
+  speechRecognition.maxAlternatives = 1;
 
   const isListening = ref(false);
   const transcripts = ref<string[]>(options.initialTranscripts!);
@@ -73,38 +78,30 @@ export default function useSpeechRecognitionAPI(options = defaultOptions) {
   speechRecognition.onstart = (event: any) => {
     isListening.value = true;
     status.value = SpeechRecognitionAPIStatus.OK;
-    console.log('onstart', event);
   };
 
   speechRecognition.onend = (event: any) => {
     isListening.value = false;
-    console.log('onend', event);
   };
 
   speechRecognition.onError = (event: any) => {
     isListening.value = false;
-    console.log('onError', event);
   };
 
   speechRecognition.onspeechend = (event: any) => {
     isListening.value = false;
-    console.log('onspeechend', event);
   };
 
-  interface SpeechRecognitionAlternative {
-    confidence: number;
-    transcript: string;
-  }
-
   speechRecognition.onresult = (event: any) => {
-    console.log('onresult', event);
-
     const result: SpeechRecognitionAlternative[] = event.results[0];
 
     const { confidence, transcript } = result[0];
 
     if (confidence >= options.minimalConfidence!) {
-      transcripts.value.push(transcript);
+      function confirm() {
+        transcripts.value.push(transcript);
+      }
+      options.onResult!(transcript, confirm);
     } else {
       status.value = SpeechRecognitionAPIStatus.Repeat;
     }
